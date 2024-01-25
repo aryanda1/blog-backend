@@ -19,7 +19,8 @@ export const addBlog = async (req, res, next) => {
   const { title, description, image, user } = req.body;
 
   let existingUser;
-  if(!mongoose.isObjectIdOrHexString(user)) return res.status(400).json({message:"invalid user Id"})
+  if (!mongoose.isObjectIdOrHexString(user))
+    return res.status(400).json({ message: "invalid user Id" });
   try {
     existingUser = await User.findById(user);
   } catch (err) {
