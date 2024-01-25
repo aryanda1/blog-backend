@@ -1,5 +1,6 @@
 import User from "../model/User.js";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 export const getAllUser = async (req, res, next) => {
   let users;
@@ -20,7 +21,7 @@ export const signup = async (req, res, next) => {
   try {
     existingUser = await User.findOne({ email });
   } catch (err) {
-    return console.log(err);
+    return res.status(500).json({ message: err });
   }
   if (existingUser) {
     return res
@@ -28,7 +29,9 @@ export const signup = async (req, res, next) => {
       .json({ message: "User Already Exists! Login Instead" });
   }
   const hashedPassword = bcrypt.hashSync(password);
-
+  const accessToken = jwt.sign({ email }, process.env.ACCESS_TOKEN_SECRET, {
+    expiresIn: "30d",
+  });
   const user = new User({
     name,
     email,
@@ -41,7 +44,7 @@ export const signup = async (req, res, next) => {
   } catch (err) {
     return console.log(err);
   }
-  return res.status(201).json({ user });
+  return res.status(201).json({ accessToken });
 };
 
 export const login = async (req, res, next) => {
@@ -50,17 +53,21 @@ export const login = async (req, res, next) => {
   try {
     existingUser = await User.findOne({ email });
   } catch (err) {
-    return console.log(err);
+    return res.status(500).json({ message: err });
   }
   if (!existingUser) {
-    return res.status(404).json({ message: "Couldnt Find User By This Email" });
+    return res.status(404).json({ message: "User not found!" });
   }
 
   const isPasswordCorrect = bcrypt.compareSync(password, existingUser.password);
   if (!isPasswordCorrect) {
-    return res.status(400).json({ message: "Incorrect Password" });
+    return res.status(401).json({ message: "Incorrect Password" });
   }
-  return res
-    .status(200)
-    .json({ message: "Login Successfull", user: existingUser });
+  const accessToken = jwt.sign({ email }, process.env.ACCESS_TOKEN_SECRET, {
+    expiresIn: "30d",
+  });
+  return res.status(200).json({
+    message: "Login Successfull",
+    accessToken,
+  });
 };

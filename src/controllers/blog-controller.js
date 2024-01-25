@@ -7,7 +7,7 @@ export const getAllBlogs = async (req, res, next) => {
   try {
     blogs = await Blog.find().populate("user");
   } catch (err) {
-    return console.log(err);
+    return res.status(500).json({ message: err });
   }
   if (!blogs) {
     return res.status(404).json({ message: "No Blogs Found" });
@@ -16,24 +16,24 @@ export const getAllBlogs = async (req, res, next) => {
 };
 
 export const addBlog = async (req, res, next) => {
-  const { title, description, image, user } = req.body;
+  const { title, description, image, email } = req.body;
 
   let existingUser;
-  if (!mongoose.isObjectIdOrHexString(user))
-    return res.status(400).json({ message: "invalid user Id" });
+  // if (!mongoose.isObjectIdOrHexString(user))
+  //   return res.status(400).json({ message: "invalid user Id" });
   try {
-    existingUser = await User.findById(user);
+    existingUser = await User.findOne({ email });
   } catch (err) {
-    return console.log(err);
+    return res.status(500).json({ message: err });
   }
   if (!existingUser) {
-    return res.status(400).json({ message: "Unable TO FInd User By This ID" });
+    return res.status(400).json({ message: "Unable TO FInd User." });
   }
   const blog = new Blog({
     title,
     description,
     image,
-    user,
+    user: existingUser._id,
   });
   try {
     const session = await mongoose.startSession();
@@ -51,8 +51,23 @@ export const addBlog = async (req, res, next) => {
 };
 
 export const updateBlog = async (req, res, next) => {
-  const { title, description } = req.body;
+  const { title, description, email } = req.body;
+  let existingUser;
+  try {
+    existingUser = await User.findOne({ email }).populate("blogs");
+  } catch (err) {
+    return res.status(500).json({ message: err });
+  }
+  if (!existingUser) {
+    return res.status(400).json({ message: "Unable TO FInd User." });
+  }
   const blogId = req.params.id;
+  if (
+    existingUser.blogs.length == 0 ||
+    existingUser.blogs.find((blog) => blog.id == blogId) == null
+  )
+    return res.status(400).json({ message: "Unauthorized." });
+  // if(existingUser)
   let blog;
   try {
     blog = await Blog.findByIdAndUpdate(blogId, {
@@ -60,7 +75,7 @@ export const updateBlog = async (req, res, next) => {
       description,
     });
   } catch (err) {
-    return console.log(err);
+    return res.status(500).json({ message: err });
   }
   if (!blog) {
     return res.status(500).json({ message: "Unable To Update The Blog" });
@@ -70,11 +85,13 @@ export const updateBlog = async (req, res, next) => {
 
 export const getById = async (req, res, next) => {
   const id = req.params.id;
+  if (!mongoose.isObjectIdOrHexString(id))
+    return res.status(400).json({ message: "invalid blog Id" });
   let blog;
   try {
     blog = await Blog.findById(id);
   } catch (err) {
-    return console.log(err);
+    return res.status(500).json({ message: err });
   }
   if (!blog) {
     return res.status(404).json({ message: "No Blog Found" });
@@ -83,15 +100,30 @@ export const getById = async (req, res, next) => {
 };
 
 export const deleteBlog = async (req, res, next) => {
-  const id = req.params.id;
+  const { email } = req.body;
+  let existingUser;
+  try {
+    existingUser = await User.findOne({ email }).populate("blogs");
+  } catch (err) {
+    return res.status(500).json({ message: err });
+  }
+  if (!existingUser) {
+    return res.status(400).json({ message: "Unable TO Find User." });
+  }
+  const blogId = req.params.id;
+  if (
+    existingUser.blogs.length == 0 ||
+    existingUser.blogs.find((blog) => blog.id == blogId) == null
+  )
+    return res.status(400).json({ message: "Unauthorized." });
 
   let blog;
   try {
-    blog = await Blog.findByIdAndRemove(id).populate("user");
-    await blog.user.blogs.pull(blog);
-    await blog.user.save();
+    blog = await Blog.findByIdAndRemove(blogId);
+    await existingUser.blogs.pull(blog);
+    await existingUser.save();
   } catch (err) {
-    console.log(err);
+    return res.status(500).json({ message: err });
   }
   if (!blog) {
     return res.status(500).json({ message: "Unable To Delete" });
@@ -100,15 +132,16 @@ export const deleteBlog = async (req, res, next) => {
 };
 
 export const getByUserId = async (req, res, next) => {
-  const userId = req.params.id;
-  let userBlogs;
+  const { email } = req.body;
+  let user;
   try {
-    userBlogs = await User.findById(userId).populate("blogs");
+    user = await User.findOne({ email }).populate("blogs");
   } catch (err) {
-    return console.log(err);
+    console.log(err);
+    return res.status(500).json({ message: err });
   }
-  if (!userBlogs) {
-    return res.status(404).json({ message: "No Blog Found" });
+  if (!user) {
+    return res.status(400).json({ message: "Unable TO Find User." });
   }
-  return res.status(200).json({ user: userBlogs });
+  return res.status(200).json({ user });
 };
