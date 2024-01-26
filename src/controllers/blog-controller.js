@@ -21,8 +21,8 @@ export const getAllBlogs = async (req, res, next) => {
 };
 
 export const addBlog = async (req, res, next) => {
-  const { title, description, image, email } = req.body;
-
+  const { title, description, email } = req.body;
+  const image = req.file.location;
   let existingUser;
   // if (!mongoose.isObjectIdOrHexString(user))
   //   return res.status(400).json({ message: "invalid user Id" });
