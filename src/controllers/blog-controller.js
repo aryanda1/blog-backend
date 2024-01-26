@@ -5,8 +5,13 @@ import User from "../model/User.js";
 export const getAllBlogs = async (req, res, next) => {
   let blogs;
   try {
-    blogs = await Blog.find().populate("user");
+    blogs = await Blog.find()
+      .sort({ "date.created": -1 })
+      .limit(10)
+      .populate("user");
   } catch (err) {
+    console.log(err);
+
     return res.status(500).json({ message: err });
   }
   if (!blogs) {
@@ -135,7 +140,13 @@ export const getByUserId = async (req, res, next) => {
   const { email } = req.body;
   let user;
   try {
-    user = await User.findOne({ email }).populate("blogs");
+    user = await User.findOne({ email }).populate({
+      path: "blogs",
+      options: {
+        sort: { "date.created": -1 }, // Sort by the 'created' field in descending order
+        limit: 10, // Limit the results to 10 entries
+      },
+    });
   } catch (err) {
     console.log(err);
     return res.status(500).json({ message: err });
@@ -143,5 +154,5 @@ export const getByUserId = async (req, res, next) => {
   if (!user) {
     return res.status(400).json({ message: "Unable TO Find User." });
   }
-  return res.status(200).json({ user });
+  return res.status(200).json({ blogs: user.blogs, name: user.name });
 };
