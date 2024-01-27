@@ -22,6 +22,7 @@ export const getAllBlogs = async (req, res, next) => {
 
 export const addBlog = async (req, res, next) => {
   const { title, description, email } = req.body;
+  if (!req.file) return res.status(400).json({ message: "No Image Found" });
   const image = req.file.location;
   let existingUser;
   // if (!mongoose.isObjectIdOrHexString(user))
@@ -73,12 +74,14 @@ export const updateBlog = async (req, res, next) => {
   )
     return res.status(400).json({ message: "Unauthorized." });
   // if(existingUser)
+  const updateInputs = {};
+  if (title) updateInputs.title = title;
+  if (description) updateInputs.description = description;
+  if (req.file && req.file.location) updateInputs.image = req.file.location;
+
   let blog;
   try {
-    blog = await Blog.findByIdAndUpdate(blogId, {
-      title,
-      description,
-    });
+    blog = await Blog.findByIdAndUpdate(blogId, updateInputs, { new: true });
   } catch (err) {
     return res.status(500).json({ message: err });
   }

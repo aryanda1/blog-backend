@@ -36,8 +36,8 @@ const multerUpload = async (request, response, next) => {
     } else {
       if (request.file) {
         request.body.email = email;
-        next();
-      } else response.status(500).json({ message: "File not uploaded" });
+      }
+      next();
     }
   });
 };
