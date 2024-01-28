@@ -1,11 +1,15 @@
 import mongoose from "mongoose";
 import Blog from "../model/Blog.js";
 import User from "../model/User.js";
+import { isIsoDate } from "../utils/utils.js";
 
 export const getAllBlogs = async (req, res, next) => {
   let blogs;
+  const { lastTime } = req.query;
+  if (!isIsoDate(lastTime)) res.status(400).json({ message: "Invalid Date" });
+  console.log(lastTime, typeof lastTime);
   try {
-    blogs = await Blog.find()
+    blogs = await Blog.find({ "date.created": { $lt: lastTime } })
       .sort({ "date.created": -1 })
       .limit(10)
       .populate("user");

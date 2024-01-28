@@ -42,7 +42,7 @@ export const signup = async (req, res, next) => {
   try {
     await user.save();
   } catch (err) {
-    return console.log(err);
+    return res.status(500).json({ message: err });
   }
   return res.status(201).json({ accessToken, name });
 };
